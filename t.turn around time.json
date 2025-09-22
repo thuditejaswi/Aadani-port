@@ -1,0 +1,196 @@
+{
+  "name": "t.turn around time",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        }
+      },
+      "id": "2b0a0c5b-5f67-496e-a020-8326df86ada0",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1rx9ypbZTTRsxo9l8ONiw8iVvUiK4Dj37LWgsXHnoVaA",
+          "mode": "list",
+          "cachedResultName": "s8.Empty_Container_Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rx9ypbZTTRsxo9l8ONiw8iVvUiK4Dj37LWgsXHnoVaA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rx9ypbZTTRsxo9l8ONiw8iVvUiK4Dj37LWgsXHnoVaA/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "ce075399-f942-40bf-a576-712356585300",
+      "name": "Read Inventory",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        -80,
+        -32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12KxRB7qs8FZ_CYApnfynKqL4ocFs6gzJhNTuyRFAFiM",
+          "mode": "list",
+          "cachedResultName": "s9.Export_Bookings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12KxRB7qs8FZ_CYApnfynKqL4ocFs6gzJhNTuyRFAFiM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12KxRB7qs8FZ_CYApnfynKqL4ocFs6gzJhNTuyRFAFiM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "a9ee0a84-9131-4866-8a0a-9ecccbfc55f3",
+      "name": "Read Export Bookings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        80,
+        144
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get data from the Google Sheets nodes\nconst inventory = $items(\"Read Inventory\", 0, 0).map(i => i.json);\nconst bookings = $items(\"Read Export Bookings\", 0, 0).map(i => i.json);\n\nconst results = [];\n\nfor (const booking of bookings) {\n  // Filter only available containers matching booking location\n  const availableContainers = inventory.filter(c =>\n    c.Location === booking.Pickup_Location &&\n    c.Status === \"Available\"\n  );\n\n  // Build structured output for each booking\n  results.push({\n    Booking_ID: booking.Booking_ID,\n    Pickup_Location: booking.Pickup_Location,\n    Pickup_Time: booking.Pickup_Time,\n    Cargo_Type: booking.Cargo_Type,\n    Matched_Containers: availableContainers.map(c => ({\n      Container_ID: c.Container_ID,\n      Location: c.Location,\n      Available_Time: c.Available_Time\n    }))\n  });\n}\n\n// Return all combined data\nreturn results.map(r => ({ json: r }));\n"
+      },
+      "id": "02b7e3d2-b686-459e-b270-1418687b463d",
+      "name": "Matching Engine",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1jHz7njdDmRKg_iE-Evgx6xpK8dTr1SUte05BeGZBpfY",
+          "mode": "list",
+          "cachedResultName": "s10.Matched containers",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jHz7njdDmRKg_iE-Evgx6xpK8dTr1SUte05BeGZBpfY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jHz7njdDmRKg_iE-Evgx6xpK8dTr1SUte05BeGZBpfY/edit#gid=0"
+        },
+        "dataMode": "autoMapInputData",
+        "options": {}
+      },
+      "id": "c7f3b97b-4ece-48af-8f3e-c8a6766eb9ad",
+      "name": "Write Matches",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        464,
+        64
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Inventory": {
+      "main": [
+        [
+          {
+            "node": "Read Export Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Matching Engine": {
+      "main": [
+        [
+          {
+            "node": "Write Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Export Bookings": {
+      "main": [
+        [
+          {
+            "node": "Matching Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c8f15118-c52d-4d30-a5ad-39e5c4631990",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8010e9faad3caea88ec22b2285aeff486ea73c91ec8e149c2016dee18e908cd6"
+  },
+  "id": "EEgCDhvFtvJearW5",
+  "tags": []
+}

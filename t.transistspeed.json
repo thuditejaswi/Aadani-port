@@ -1,0 +1,144 @@
+{
+  "name": "t.transistspeed",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ecca0cfc-62aa-4aa1-925e-d33a838cce43",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1-j3MORoHlLJq4FwtnPvC9XoIc7DWqeI7N33gF0Mk7r0",
+          "mode": "list",
+          "cachedResultName": "s5.HistoricalTransit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-j3MORoHlLJq4FwtnPvC9XoIc7DWqeI7N33gF0Mk7r0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-j3MORoHlLJq4FwtnPvC9XoIc7DWqeI7N33gF0Mk7r0/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "8350b73a-14d2-4388-ad93-0cc321b360d7",
+      "name": "Read HistoricalTransit",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        400,
+        -80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => {\n  const row = item.json;\n  // Simple optimization logic\n  const baseSpeed = parseFloat(row.Avg_Speed_kmph);\n  let optimizedSpeed = baseSpeed;\n  let fuelSaving = 5;\n  let risk = \"Low\";\n\n  if (row.Traffic_Level === \"High\") {\n    optimizedSpeed += 10;\n    fuelSaving += 5;\n    risk = \"Medium\";\n  } else if (row.Traffic_Level === \"Medium\") {\n    optimizedSpeed += 5;\n    fuelSaving += 3;\n  }\n\n  if (row.Weather === \"Rain\" || row.Weather === \"Fog\") {\n    optimizedSpeed -= 5;\n    risk = \"High\";\n  }\n\n  const distance = parseFloat(row.Distance_km);\n  const hours = distance / optimizedSpeed;\n  const depTime = new Date(row.Departure_Time);\n  const predictedETA = new Date(depTime.getTime() + hours * 3600000);\n\n return {\n  json: {\n    Trip_ID: row.Trip_ID,\n    Origin: row.Origin,\n    Destination: row.Destination,\n    Predicted_ETA: predictedETA.toISOString().slice(0, 16).replace('T', ' '),\n    Optimized_Route: \"Alt_\" + row.Route_ID,\n    Expected_Speed_kmph: optimizedSpeed,\n    \"Fuel_Saving_%\": fuelSaving + \"%\",\n  }\n};\n\n});"
+      },
+      "id": "85bf4274-edc2-4096-94f7-25da9e8d47ec",
+      "name": "Optimize Transit",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        592,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qDnkpYxVYcTMYJBLgk9cYw3siJNUJK9Zs5KBKPru1K8",
+          "mode": "list",
+          "cachedResultName": "s6.OptimizedTransit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qDnkpYxVYcTMYJBLgk9cYw3siJNUJK9Zs5KBKPru1K8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qDnkpYxVYcTMYJBLgk9cYw3siJNUJK9Zs5KBKPru1K8/edit#gid=0"
+        },
+        "dataMode": "autoMapInputData",
+        "options": {}
+      },
+      "id": "e582ebf9-806f-49b8-b26d-d681b2e8e71b",
+      "name": "Write OptimizedTransit",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        816,
+        -80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read HistoricalTransit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read HistoricalTransit": {
+      "main": [
+        [
+          {
+            "node": "Optimize Transit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Optimize Transit": {
+      "main": [
+        [
+          {
+            "node": "Write OptimizedTransit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1d7a2cfd-5291-470f-ae1a-8a3e675cc6b7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8010e9faad3caea88ec22b2285aeff486ea73c91ec8e149c2016dee18e908cd6"
+  },
+  "id": "PX2SQYJQgxlfCjMu",
+  "tags": []
+}

@@ -1,0 +1,415 @@
+{
+  "name": "t.timeprediction",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a3a50648-2791-4de7-9528-353c9be91052",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "sheetId": "1rtmB45vUfOpjddFFxkOPpwDeybz5SYTLeRZSbzQHToY",
+        "range": "A:K",
+        "rawData": true,
+        "options": {}
+      },
+      "id": "5b923091-701b-43e6-9f30-cac7ee63d10a",
+      "name": "Read Containers",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sheetId": "1vTSdVteFNPKmiI1CNPnSS3DREBDVp5XFJLX427YLowM",
+        "range": "A:D",
+        "options": {}
+      },
+      "id": "bb1c976c-00ce-482d-9f8c-d3384accd3a0",
+      "name": "Read Historical Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        48,
+        96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sheetId": "1y2v0zH9yXqhbEXlalpbV11VGAoHF6wDcLKKRfzVyyzM",
+        "range": "A:D",
+        "options": {}
+      },
+      "id": "97d42d80-5a43-46fb-b36c-f36a0c12c4d4",
+      "name": "Read RealTime Factors",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        240,
+        96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const now = new Date();\nconst histData = $items(\"Read Historical Data\").map(i => i.json);\nconst rtData = $items(\"Read RealTime Factors\").map(i => i.json);\n\nreturn items.map(i => {\n  const c = i.json;\n\n  // default port fallback if location is missing\n  const port = (c.location && c.location.includes(\"JNPT\")) ? \"JNPT\" : \"MUNDRA\";\n\n  const hist = histData.find(h => h.port_code === port);\n  const factors = rtData.find(r => r.port_code === port);\n\n  const base_eta_hrs =\n    Number(hist?.avg_dwell_hrs || 0) +\n    Number(hist?.avg_transit_hrs || 0) +\n    Number(hist?.avg_cfs_dwell_hrs || 0);\n\n  const delay_hrs =\n    Number(factors?.traffic_delay_hrs || 0) +\n    Number(factors?.weather_delay_hrs || 0) +\n    Number(factors?.port_congestion_hrs || 0);\n\n  const total_eta_hrs = base_eta_hrs + delay_hrs;\n  const predicted_eta = new Date(now.getTime() + total_eta_hrs * 36e5).toISOString();\n\n  return { json: { ...c, predicted_eta, total_eta_hrs } };\n});\n"
+      },
+      "id": "88ebe701-5720-4f4d-8dbf-86080e3959dc",
+      "name": "Predict ETA",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        624,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "sheetId": "1e_3lFPImieb5FYEwTOR2YJPRvq4IR1w5lA_iMstn_uE",
+        "options": {}
+      },
+      "id": "59ff5064-dcb4-4af1-b285-1070029d615d",
+      "name": "Read Stakeholders",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        416,
+        96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "22311a04p7@ece.sreenidhi.edu.in",
+        "subject": "Time prediction",
+        "message": "=owner: {{ $json.owner }}  predicted-eta: {{ $json.predicted_eta }} total number of hours: {{ $json.total_eta_hrs }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        512,
+        336
+      ],
+      "id": "f0ff8505-47a9-440b-950b-a004c80b47bc",
+      "name": "Send a message",
+      "webhookId": "8f2e6d7c-6fc7-44ba-94f7-11c64e52c364",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O3Bdpssceb2pJ3ib",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1rtmB45vUfOpjddFFxkOPpwDeybz5SYTLeRZSbzQHToY",
+          "mode": "list",
+          "cachedResultName": "s1.Containers",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rtmB45vUfOpjddFFxkOPpwDeybz5SYTLeRZSbzQHToY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rtmB45vUfOpjddFFxkOPpwDeybz5SYTLeRZSbzQHToY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "owner"
+          ],
+          "schema": [
+            {
+              "id": "container_no",
+              "displayName": "container_no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "owner",
+              "displayName": "owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gate_in_time",
+              "displayName": "gate_in_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "holds",
+              "displayName": "holds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reefer",
+              "displayName": "reefer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "line_code",
+              "displayName": "line_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "iso_code",
+              "displayName": "iso_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "predicted_eta",
+              "displayName": "predicted_eta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "slack_channel",
+              "displayName": "slack_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total_eta_hrs",
+              "displayName": "total_eta_hrs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        832,
+        96
+      ],
+      "id": "0f3a6887-0ec5-4e1c-8c14-e45f81adf17b",
+      "name": "Update predicted eta",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Containers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Containers": {
+      "main": [
+        [
+          {
+            "node": "Read Historical Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Predict ETA": {
+      "main": [
+        [
+          {
+            "node": "Update predicted eta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Historical Data": {
+      "main": [
+        [
+          {
+            "node": "Read RealTime Factors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read RealTime Factors": {
+      "main": [
+        [
+          {
+            "node": "Read Stakeholders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Stakeholders": {
+      "main": [
+        [
+          {
+            "node": "Predict ETA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update predicted eta": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0673f690-a249-42e9-b353-d30ef2e101e4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8010e9faad3caea88ec22b2285aeff486ea73c91ec8e149c2016dee18e908cd6"
+  },
+  "id": "nElc92jBEq5P2Th7",
+  "tags": []
+}

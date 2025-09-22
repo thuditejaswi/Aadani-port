@@ -1,0 +1,212 @@
+{
+  "name": "t.dwell",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6c37e040-4f85-481b-8135-2108760a6af1",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "sheetId": "=1rtmB45vUfOpjddFFxkOPpwDeybz5SYTLeRZSbzQHToY",
+        "options": {}
+      },
+      "id": "e580185d-530a-4df8-8944-f59ac6afb5e1",
+      "name": "Read Containers",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        192
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const now = new Date();\nconst THRESH = 48; // hours\nreturn items.map(i => {\n  const c = i.json;\n  const gateIn = new Date(c.gate_in_time);\n  const dwell = (now - gateIn) / 36e5; // in hours\n  let risk = dwell / THRESH;\n  if (c.holds && c.holds !== 'none') risk += 0.3;\n  if (c.reefer && c.reefer.toLowerCase() === 'yes') risk += 0.2;\n  return { json: { ...c, dwell_hrs: dwell.toFixed(1), risk_score: risk.toFixed(2) } };\n});"
+      },
+      "id": "6952d032-74cb-4ec0-93d1-32f7ff178517",
+      "name": "Calc Dwell & Risk",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.risk_score}}",
+              "operation": "larger",
+              "value2": 0.6
+            }
+          ]
+        }
+      },
+      "id": "ca702670-4af9-40a7-8e6f-022f84c84207",
+      "name": "IF High Risk",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "sheetId": "=1e_3lFPImieb5FYEwTOR2YJPRvq4IR1w5lA_iMstn_uE",
+        "range": "A1:D100",
+        "options": {}
+      },
+      "id": "6f0c823b-3605-41ce-a77a-6f58671647e1",
+      "name": "Read Stakeholders",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "1V1upyZx6xKt-BKtYQrF9Ye-x1HPpW9E1K-BFnBVkYyA",
+        "range": "TruckJobs!A1:E1",
+        "options": {}
+      },
+      "id": "b2b4b25c-338d-4060-9826-dca47a17a769",
+      "name": "Append Truck Job",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        288
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "22311a04p7@ece.sreenidhi.edu.in",
+        "subject": "Dwell",
+        "message": "={{ $json.owner }}\n{{ $json.phone }}\n{{ $json.email }}\n{{ $json.slack_channel }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        80
+      ],
+      "id": "2d586ea8-07a3-47bf-a788-723f1e7b6d15",
+      "name": "Send a message",
+      "webhookId": "e5c08a68-174e-4afc-a1c3-72a5e0e1e1d7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O3Bdpssceb2pJ3ib",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Read Containers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Containers": {
+      "main": [
+        [
+          {
+            "node": "Calc Dwell & Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calc Dwell & Risk": {
+      "main": [
+        [
+          {
+            "node": "IF High Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF High Risk": {
+      "main": [
+        [
+          {
+            "node": "Read Stakeholders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append Truck Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Stakeholders": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7190c9a7-822d-4a4f-959a-2f38c42a7f06",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8010e9faad3caea88ec22b2285aeff486ea73c91ec8e149c2016dee18e908cd6"
+  },
+  "id": "PXtF12Qf1MLdbd5u",
+  "tags": []
+}

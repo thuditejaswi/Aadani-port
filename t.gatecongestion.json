@@ -1,0 +1,137 @@
+{
+  "name": "t.gatecongestion",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "36dac65e-79d2-4289-ab4e-4606a53515a2",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1LX1Y9rj9gtNiQPwsvJNTDDIzjJCi4_wC6Sg0zWi5s5c",
+          "mode": "list",
+          "cachedResultName": "s7.Gatearrival",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LX1Y9rj9gtNiQPwsvJNTDDIzjJCi4_wC6Sg0zWi5s5c/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LX1Y9rj9gtNiQPwsvJNTDDIzjJCi4_wC6Sg0zWi5s5c/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "7354a4fa-e6a2-4feb-bd1e-faa988c6510b",
+      "name": "Read GateArrivals",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        256,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SYj8TptQb0aSX7oS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all items\nconst items = $input.all();\n\n// Create a map to count vehicles per Arrival_Time\nconst counts = {};\nfor (const item of items) {\n  const time = item.json.Arrival_Time;\n  if (!counts[time]) {\n    counts[time] = 0;\n  }\n  counts[time] += 1;\n}\n\n// Attach vehicle count to each item\nfor (const item of items) {\n  item.json.Vehicles_Waiting = counts[item.json.Arrival_Time];\n}\n\nreturn items;\n"
+      },
+      "id": "5459fc03-d575-4ced-b730-99e3ec209ded",
+      "name": "Gate Flow Optimization",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "22311a04p7@ece.sreenidhi.edu.in",
+        "subject": "Gate congestion",
+        "message": "=At {{ $json.Arrival_Time }} the number of vechicles waiting are{{ $json.Vehicles_Waiting }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        0
+      ],
+      "id": "5439fc8a-800c-4909-bb32-96fc70e21266",
+      "name": "Send a message",
+      "webhookId": "7d8e79e3-5d37-4160-9e21-a41448b69286",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O3Bdpssceb2pJ3ib",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read GateArrivals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read GateArrivals": {
+      "main": [
+        [
+          {
+            "node": "Gate Flow Optimization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate Flow Optimization": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fe2b27e3-0332-4a8c-b720-03bb5ce1a986",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8010e9faad3caea88ec22b2285aeff486ea73c91ec8e149c2016dee18e908cd6"
+  },
+  "id": "wWGrwiOnrU7FjeZe",
+  "tags": []
+}
