@@ -1,0 +1,6 @@
+Five key performance indicators (KPIs) used to analyze logistics data. These indicators are:
+Port Dwell Time: The time a container spends within a port, either before being gated out for import or loaded onto a vessel for export.
+Container Delivery Time: The total time a container takes to travel from a vessel to a Container Freight Station (CFS) or Inland Container Depot (ICD) during import, or from a CFS/ICD to a vessel for export. This metric includes port dwell time, transit time, and CFS/ICD dwell time.
+Transit Speed: The average speed at which a container is transported on major highways and railways. For road travel, it's calculated based on the distance between toll plazas and the time taken by trailers. For rail, it's based on the distance between a port and an ICD and the time a container takes on the train.
+Port Gate Congestion: The extra time required for trailers to enter a port during the export process. It's identified by comparing the time from a CFS to the port's "IN" gate during export with the time from the port's "OUT" gate to a CFS during import.
+Container Turn Around Time (TAT): The average duration an import-export (EXIM) container stays in India, from the time it is unloaded from a vessel during import until it is loaded onto a vessel for export.
